@@ -1,0 +1,310 @@
+---
+# Source: open-match/charts/open-match-customize/templates/customize-configmap.yaml
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: customize-configmap
+  namespace: open-match
+  annotations:
+    chart: open-match-customize-0.0.0-dev
+    heritage: Tiller
+  labels:
+    app: open-match-customize
+    component: config
+    release: open-match
+data:
+  matchmaker_config.yaml: |-
+    api:
+      mmlogic:
+        hostname: "om-mmlogic"
+        grpcport: "50503"
+      
+      functions:
+        hostname: "om-function"
+        grpcport: "50502"
+        httpport: "51502"
+      
+      evaluator:
+        hostname: "om-evaluator"
+        grpcport: "50508"
+        httpport: "51508"
+---
+# Source: open-match/charts/open-match-customize/templates/evaluator.yaml
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: om-evaluator
+  namespace: open-match
+  annotations:
+    chart: open-match-customize-0.0.0-dev
+    heritage: Tiller
+  labels:
+    app: open-match-customize
+    component: evaluator
+    release: open-match
+spec:
+  selector:
+    app: open-match-customize
+    component: evaluator
+    release: open-match
+  ports:
+  - name: grpc
+    protocol: TCP
+    port: 50508
+  - name: http
+    protocol: TCP
+    port: 51508
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: om-evaluator
+  namespace: open-match
+  annotations:
+    chart: open-match-customize-0.0.0-dev
+    heritage: Tiller
+spec:
+  scaleTargetRef:
+    apiVersion: extensions/v1beta1
+    kind: Deployment
+    name: om-evaluator
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 50
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: om-evaluator
+  namespace: open-match
+  labels:
+    app: open-match-customize
+    component: evaluator
+    release: open-match
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: open-match-customize
+      component: evaluator
+  template:
+    metadata:
+      namespace: open-match
+      annotations:
+        
+        chart: open-match-customize-0.0.0-dev
+        heritage: Tiller
+      labels:
+        app: open-match-customize
+        component: evaluator
+        release: open-match
+    spec:
+      volumes:
+        
+        - name: customize-config-volume
+          configMap:
+            name: customize-configmap
+        - name: global-config-volume
+          configMap:
+            name: global-configmap
+        
+      serviceAccountName: open-match-unprivileged-service
+      containers:
+      - name: om-evaluator
+        volumeMounts:
+          
+          - name: customize-config-volume
+            mountPath: /app/config/om
+          - name: global-config-volume
+            mountPath: /app/config/global
+          
+        image: "gcr.io/open-match-235920/openmatch-evaluator-go-simple:dev"
+        ports:
+        - name: grpc
+          containerPort: 50508
+        - name: http
+          containerPort: 51508
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: 100Mi
+            cpu: 100m
+        livenessProbe:
+          httpGet:
+            scheme: HTTP
+            path: /healthz
+            port: 51508
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            scheme: HTTP
+            path: /healthz?readiness=true
+            port: 51508
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 2
+
+---
+# Source: open-match/charts/open-match-customize/templates/matchfunctions.yaml
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: om-function
+  namespace: open-match
+  annotations:
+    chart: open-match-customize-0.0.0-dev
+    heritage: Tiller
+  labels:
+    app: open-match-customize
+    component: matchfunction
+    release: open-match
+spec:
+  selector:
+    app: open-match-customize
+    component: matchfunction
+    release: open-match
+  ports:
+  - name: grpc
+    protocol: TCP
+    port: 50502
+  - name: http
+    protocol: TCP
+    port: 51502
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: om-function
+  namespace: open-match
+  annotations:
+    chart: open-match-customize-0.0.0-dev
+    heritage: Tiller
+spec:
+  scaleTargetRef:
+    apiVersion: extensions/v1beta1
+    kind: Deployment
+    name: om-function
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 50
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: om-function
+  namespace: open-match
+  annotations:
+    chart: open-match-customize-0.0.0-dev
+    heritage: Tiller
+  labels:
+    app: open-match-customize
+    component: matchfunction
+    release: open-match
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: open-match-customize
+      component: matchfunction
+  template:
+    metadata:
+      namespace: open-match
+      annotations:
+        
+        chart: open-match-customize-0.0.0-dev
+        heritage: Tiller
+      labels:
+        app: open-match-customize
+        component: matchfunction
+        release: open-match
+    spec:
+      volumes:
+        
+        - name: customize-config-volume
+          configMap:
+            name: customize-configmap
+        - name: global-config-volume
+          configMap:
+            name: global-configmap
+        
+      serviceAccountName: open-match-unprivileged-service
+      containers:
+      - name: om-function
+        volumeMounts:
+          
+          - name: customize-config-volume
+            mountPath: /app/config/om
+          - name: global-config-volume
+            mountPath: /app/config/global
+          
+        image: "gcr.io/open-match-235920/openmatch-mmf-go-pool:dev"
+        ports:
+        - name: grpc
+          containerPort: 50502
+        - name: http
+          containerPort: 51502
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: 100Mi
+            cpu: 100m
+        livenessProbe:
+          httpGet:
+            scheme: HTTP
+            path: /healthz
+            port: 51502
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            scheme: HTTP
+            path: /healthz?readiness=true
+            port: 51502
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 2
