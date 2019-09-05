@@ -7,10 +7,10 @@ import (
 var cfg = getKubeConfig()
 
 func main() {
-	// initialize()
-	simulate()
+	initializeAgonesSettings()
+	simulatePlayer()
 	for {
-		if err := doSomething(); err != nil {
+		if err := directGamePlay(); err != nil {
 			panic(err)
 			break
 		}

@@ -19,10 +19,12 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-func doSomething() error {
+func directGamePlay() error {
 	bc, closer := getOMBackendClient(cfg)
 	defer closer()
 
+	// om-function:50502 -> the internal hostname & port number of the MMF service in our Kubernetes cluster
+	// Create a FetchMatchesRequest that attempts to pull out matches with 0 < ticket[mmr.rating] < 20
 	fmReq := &pb.FetchMatchesRequest{
 		Config: &pb.FunctionConfig{
 			Host: "om-function",
@@ -54,6 +56,7 @@ func doSomething() error {
 		return err
 	}
 
+	// Read the FetchMatches response
 	matches := []*pb.Match{}
 	playerStr := ""
 	for {
@@ -81,7 +84,7 @@ func doSomething() error {
 		return err
 	}
 
-	// Ask Agones for a game server and allocate tickets to the server
+	// Ask Agones for game server allocations and allocate tickets to the servers
 	for _, match := range matches {
 		gsa, err := agonesClient.AllocationV1().GameServerAllocations("default").Create(&allocationv1.GameServerAllocation{
 			Spec: allocationv1.GameServerAllocationSpec{
@@ -112,6 +115,9 @@ func doSomething() error {
 				},
 			})
 			if err != nil {
+				// Corner case where we allocated a game server for players who left the queue after some waiting time.
+				// Note that we may still leak some game servers when tickets got assigned but players leave the queue before game frontend announced the assignments.
+				// Is it an Open Match/Agones/Game developer problem? Does it worth to expose a verification API to help resolve this problem?
 				fmt.Printf("Director: failed to assign tickets to game server, desc: %s\n", err.Error())
 				fmt.Printf("Director: attempt to cleanup the staled game server %s\n", gsa.Status.GameServerName)
 				if err = agonesClient.AgonesV1().GameServers("default").Delete(gsa.Status.GameServerName, &metav1.DeleteOptions{}); err != nil {
@@ -142,7 +148,7 @@ func getOMBackendClient(cfg *rest.Config) (pb.BackendClient, func() error) {
 	return pb.NewBackendClient(conn), conn.Close
 }
 
-func initialize() {
+func initializeAgonesSettings() {
 	// Access to the Agones resources through the Agones Clientset
 	// Note that we use the same config as we used for the Kubernetes Clientset
 	agonesClient, err := versioned.NewForConfig(getKubeConfig())

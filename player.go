@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func simulate() {
+func simulatePlayer() {
 	for i := 0; i < 2; i++ {
 		go func(i int) {
 			for {
@@ -21,7 +21,6 @@ func simulate() {
 }
 
 func play(i int) {
-	//fmt.Println("askdjgsadjhgsadsad ", i)
 	pc := make(chan string, 1)
 	defer close(pc)
 	pc <- fmt.Sprintf("player-%d", i)
@@ -37,6 +36,8 @@ func play(i int) {
 				fmt.Println(err.Error())
 				return
 			}
+
+			// Player connects to the game server
 			conn, err := net.DialUDP("udp", nil, raddr)
 			if err != nil {
 				fmt.Printf("Player %d: fail to DialUDP", i)
@@ -47,13 +48,13 @@ func play(i int) {
 				fmt.Printf("Player %d: fail to establish connection to game server %s, desc: %s\n", i, gsAddr, err.Error())
 				return
 			}
-			// Send something to the game server
+			// Player sends something to the game server
 			if _, err = fmt.Fprintf(conn, "Hello Game Server"); err != nil {
 				fmt.Printf("Player %d: fail to say hello to game server %s, desc: %s\n", i, gsAddr, err.Error())
 				return
 			}
 
-			// Read response from the game server
+			// Player reads response from the game server
 			p := make([]byte, 1024)
 			if _, err = bufio.NewReader(conn).Read(p); err != nil {
 				fmt.Printf("Player %d: fail to read response from game server: %s, desc: %s\n", i, gsAddr, err.Error())
@@ -72,6 +73,7 @@ func play(i int) {
 				return
 			}
 			p = make([]byte, 1024)
+			// Player attempts to exit the game
 			if _, err = fmt.Fprint(conn, "EXIT"); err != nil {
 				fmt.Printf("Player %d: fail to say goodbye to game server %s, desc: %s\n", i, gsAddr, err.Error())
 				return
