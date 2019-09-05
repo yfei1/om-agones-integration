@@ -64,7 +64,7 @@ func play(i int) {
 			fmt.Printf("Player %d: game server %s ack with: %s\n", i, gsAddr, string(p))
 
 			// Who needs sleep? Sleep is for the weak
-			time.Sleep(time.Duration(rand.New(rand.NewSource(time.Now().UnixNano()+int64(i*10))).Intn(5)) * time.Second)
+			time.Sleep(time.Duration(rand.New(rand.NewSource(time.Now().UnixNano()+int64(i*10))).Intn(10)) * time.Second)
 
 			deadline := time.Now().Add(time.Second)
 			err = conn.SetDeadline(deadline)

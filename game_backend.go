@@ -12,6 +12,7 @@ import (
 	allocationv1 "agones.dev/agones/pkg/apis/allocation/v1"
 	autoscalerv1 "agones.dev/agones/pkg/apis/autoscaling/v1"
 	"agones.dev/agones/pkg/client/clientset/versioned"
+	structpb "github.com/golang/protobuf/ptypes/struct"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -112,6 +113,11 @@ func directGamePlay() error {
 				TicketIds: getTicketIds(match.GetTickets()),
 				Assignment: &pb.Assignment{
 					Connection: fmt.Sprintf("%s:%d", gsa.Status.Address, gsa.Status.Ports[0].Port),
+					Properties: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							"gsName": {Kind: &structpb.Value_StringValue{StringValue: gsa.Status.GameServerName}},
+						},
+					},
 				},
 			})
 			if err != nil {
@@ -151,7 +157,7 @@ func getOMBackendClient(cfg *rest.Config) (pb.BackendClient, func() error) {
 func initializeAgonesSettings() {
 	// Access to the Agones resources through the Agones Clientset
 	// Note that we use the same config as we used for the Kubernetes Clientset
-	agonesClient, err := versioned.NewForConfig(getKubeConfig())
+	agonesClient, err := versioned.NewForConfig(cfg)
 	if err != nil {
 		panic("Could not create the agones api clientset")
 	}
