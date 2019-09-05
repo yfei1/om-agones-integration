@@ -51,8 +51,9 @@ kubectl apply -f https://raw.githubusercontent.com/yfei1/om-agones-integration/m
 ```
 
 ## Step 8 - Run the example
+Wait for the Open Match's load balancers and run the example
 ```bash
-GO111MODULE=on go run main.go
+GO111MODULE=on go run ./...
 ```
 
 ## Step 9 - Watch game server acticities
