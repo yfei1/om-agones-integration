@@ -54,3 +54,8 @@ kubectl apply -f https://raw.githubusercontent.com/yfei1/om-agones-integration/m
 ```bash
 GO111MODULE=on go run main.go
 ```
+
+## Step 9 - Watch game server acticities
+```bash
+watch kubectl get gs
+```
