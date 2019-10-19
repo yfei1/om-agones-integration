@@ -146,7 +146,7 @@ spec:
           - name: global-config-volume
             mountPath: /app/config/global
           
-        image: "gcr.io/open-match-235920/openmatch-evaluator-go-simple:dev"
+        image: "gcr.io/open-match-public-images/openmatch-evaluator-go-simple:dev"
         ports:
         - name: grpc
           containerPort: 50508
@@ -281,7 +281,7 @@ spec:
           - name: global-config-volume
             mountPath: /app/config/global
           
-        image: "gcr.io/open-match-235920/openmatch-mmf-go-pool:dev"
+        image: "gcr.io/open-match-public-images/openmatch-mmf-go-pool:dev"
         ports:
         - name: grpc
           containerPort: 50502
